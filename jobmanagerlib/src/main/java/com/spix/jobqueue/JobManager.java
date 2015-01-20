@@ -6,6 +6,7 @@ import com.spix.jobqueue.cachedQueue.CachedJobQueue;
 import com.spix.jobqueue.config.Configuration;
 import com.spix.jobqueue.di.DependencyInjector;
 import com.spix.jobqueue.executor.JobConsumerExecutor;
+import com.spix.jobqueue.executor.JobConsumerExecutor.OnAllRunningJobsFinishedListener;
 import com.spix.jobqueue.log.JqLog;
 import com.spix.jobqueue.network.NetworkEventProvider;
 import com.spix.jobqueue.network.NetworkUtil;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * -> Grouping jobs so that they won't run at the same time
  * -> Stats like waiting Job Count
  */
-public class JobManager implements NetworkEventProvider.Listener {
+public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJobsFinishedListener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
@@ -99,6 +100,11 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     public void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
         this.onAllJobsFinishedListener = onAllJobsFinishedListener;
+        if (onAllJobsFinishedListener != null) {
+            this.jobConsumerExecutor.setOnAllRunningJobsFinishedListener(this);
+        } else {
+            this.jobConsumerExecutor.setOnAllRunningJobsFinishedListener(null);
+        }
     }
 
 
@@ -381,26 +387,8 @@ public class JobManager implements NetworkEventProvider.Listener {
         if (jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
         }
-        // if no more job fire callback
-        if (onAllJobsFinishedListener != null) {
-            onAllJobsFinishedListener.onAllJobsFinished();
-        }
     }
 
-    public boolean isEmpty() {
-        synchronized (persistentJobQueue) {
-            if (persistentJobQueue.count() > 0) {
-                return false;
-            }
-        }
-        synchronized (nonPersistentJobQueue) {
-            if (nonPersistentJobQueue.count() > 0) {
-                return false;
-            }
-        }
-
-        return runningJobGroups.isEmpty();
-    }
 
     public synchronized void clear() {
         synchronized (nonPersistentJobQueue) {
@@ -609,6 +597,16 @@ public class JobManager implements NetworkEventProvider.Listener {
                 }
             }
         });
+    }
+
+    //Called when no more jobs are running
+    @Override
+    public void onAllRunningJobsFinished() {
+        if (count() == 0) {
+            if (onAllJobsFinishedListener != null) {
+                onAllJobsFinishedListener.onAllJobsFinished();
+            }
+        }
     }
 
 
