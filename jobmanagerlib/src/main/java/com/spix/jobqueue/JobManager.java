@@ -1,6 +1,7 @@
 package com.spix.jobqueue;
 
 import android.content.Context;
+
 import com.spix.jobqueue.cachedQueue.CachedJobQueue;
 import com.spix.jobqueue.config.Configuration;
 import com.spix.jobqueue.di.DependencyInjector;
@@ -12,7 +13,11 @@ import com.spix.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.spix.jobqueue.sqlite.SqliteJobQueue;
 
 import java.util.Collection;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * a JobManager that supports;
@@ -29,6 +34,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     @SuppressWarnings("FieldCanBeLocal")//used for testing
     private final long sessionId;
     private boolean running;
+    private OnAllJobsFinishedListener onAllJobsFinishedListener;
 
     private final Context appContext;
     private final NetworkUtil networkUtil;
@@ -45,6 +51,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
+     *
      * @param context job manager will use applicationContext.
      */
     public JobManager(Context context) {
@@ -54,20 +61,20 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Default constructor that will create a JobManager with a default {@link Configuration}
+     *
      * @param context application context
-     * @param id an id that is unique to this JobManager
+     * @param id      an id that is unique to this JobManager
      */
     public JobManager(Context context, String id) {
         this(context, new Configuration.Builder(context).id(id).build());
     }
 
     /**
-     *
      * @param context used to acquire ApplicationContext
      * @param config
      */
     public JobManager(Context context, Configuration config) {
-        if(config.getCustomLogger() != null) {
+        if (config.getCustomLogger() != null) {
             JqLog.setCustomLogger(config.getCustomLogger());
         }
         appContext = context.getApplicationContext();
@@ -81,13 +88,17 @@ public class JobManager implements NetworkEventProvider.Listener {
 
         networkUtil = config.getNetworkUtil();
         dependencyInjector = config.getDependencyInjector();
-        if(networkUtil instanceof NetworkEventProvider) {
+        if (networkUtil instanceof NetworkEventProvider) {
             ((NetworkEventProvider) networkUtil).setListener(this);
         }
         //is important to initialize consumers last so that they can start running
-        jobConsumerExecutor = new JobConsumerExecutor(config,consumerContract);
+        jobConsumerExecutor = new JobConsumerExecutor(config, consumerContract);
         timedExecutor = Executors.newSingleThreadScheduledExecutor();
         start();
+    }
+
+    public void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
+        this.onAllJobsFinishedListener = onAllJobsFinishedListener;
     }
 
 
@@ -102,7 +113,7 @@ public class JobManager implements NetworkEventProvider.Listener {
      * restarts the JobManager. Will create a new consumer if necessary.
      */
     public void start() {
-        if(running) {
+        if (running) {
             return;
         }
         running = true;
@@ -112,6 +123,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * returns the # of jobs that are waiting to be executed.
      * This might be a good place to decide whether you should wake your app up on boot etc. to complete pending jobs.
+     *
      * @return # of total jobs.
      */
     public int count() {
@@ -139,6 +151,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Adds a new Job to the list and returns an ID for it.
+     *
      * @param job to add
      * @return id for the job.
      */
@@ -149,9 +162,9 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Non-blocking convenience method to add a job in background thread.
-     * @see #addJob(Job)
-     * @param job job to add
      *
+     * @param job job to add
+     * @see #addJob(Job)
      */
     public void addJobInBackground(Job job) {
         //noinspection deprecation
@@ -170,7 +183,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     //need to sync on related job queue before calling this
     private void waitForOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
         CountDownLatch latch = lockMap.get(id);
-        if(latch == null) {
+        if (latch == null) {
             return;
         }
         try {
@@ -183,7 +196,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     //need to sync on related job queue before calling this
     private void clearOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
         CountDownLatch latch = lockMap.get(id);
-        if(latch != null) {
+        if (latch != null) {
             latch.countDown();
         }
         lockMap.remove(id);
@@ -192,11 +205,12 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * checks next available job and returns when it will be available (if it will, otherwise returns {@link Long#MAX_VALUE})
      * also creates a timer to notify listeners at that time
+     *
      * @param hasNetwork .
      * @return time wait until next job (in milliseconds)
      */
     private long ensureConsumerWhenNeeded(Boolean hasNetwork) {
-        if(hasNetwork == null) {
+        if (hasNetwork == null) {
             //if network util can inform us when network is recovered, we we'll check only next job that does not
             //require network. if it does not know how to inform us, we have to keep a busy loop.
             //noinspection SimplifiableConditionalExpression
@@ -208,7 +222,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         synchronized (nonPersistentJobQueue) {
             nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
         }
-        if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
+        if (nextRunNs != null && nextRunNs <= System.nanoTime()) {
             notifyJobConsumer();
             return 0L;
         }
@@ -216,20 +230,20 @@ public class JobManager implements NetworkEventProvider.Listener {
         synchronized (persistentJobQueue) {
             persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
         }
-        if(persistedJobRunNs != null) {
-            if(nextRunNs == null) {
+        if (persistedJobRunNs != null) {
+            if (nextRunNs == null) {
                 nextRunNs = persistedJobRunNs;
-            } else if(persistedJobRunNs < nextRunNs) {
+            } else if (persistedJobRunNs < nextRunNs) {
                 nextRunNs = persistedJobRunNs;
             }
         }
-        if(nextRunNs != null) {
+        if (nextRunNs != null) {
             //to avoid overflow, we need to check equality first
-            if(nextRunNs < System.nanoTime()) {
+            if (nextRunNs < System.nanoTime()) {
                 notifyJobConsumer();
                 return 0L;
             }
-            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);
+            long diff = (long) Math.ceil((double) (nextRunNs - System.nanoTime()) / NS_PER_MS);
             ensureConsumerOnTime(diff);
             return diff;
         }
@@ -274,19 +288,19 @@ public class JobManager implements NetworkEventProvider.Listener {
                     persistent = true;
                 }
             }
-            if(jobHolder == null) {
+            if (jobHolder == null) {
                 return null;
             }
-            if(persistent && dependencyInjector != null) {
+            if (persistent && dependencyInjector != null) {
                 dependencyInjector.inject(jobHolder.getBaseJob());
             }
-            if(jobHolder.getGroupId() != null) {
+            if (jobHolder.getGroupId() != null) {
                 runningJobGroups.add(jobHolder.getGroupId());
             }
         }
 
         //wait for onAdded locks. wait for locks after job is selected so that we minimize the lock
-        if(persistent) {
+        if (persistent) {
             waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());
         } else {
             waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
@@ -306,7 +320,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                 nonPersistentJobQueue.insertOrReplace(jobHolder);
             }
         }
-        if(jobHolder.getGroupId() != null) {
+        if (jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
         }
     }
@@ -314,23 +328,24 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * Returns the current status of a {@link Job}.
      * <p>
-     *     You should not call this method on the UI thread because it may make a db request.
+     * You should not call this method on the UI thread because it may make a db request.
      * </p>
      * <p>
-     *     This is not a very fast call so try not to make it unless necessary. Consider using events if you need to be
-     *     informed about a job's lifecycle.
+     * This is not a very fast call so try not to make it unless necessary. Consider using events if you need to be
+     * informed about a job's lifecycle.
      * </p>
-     * @param id the ID, returned by the addJob method
+     *
+     * @param id           the ID, returned by the addJob method
      * @param isPersistent Jobs are added to different queues depending on if they are persistent or not. This is necessary
      *                     because each queue has independent id sets.
      * @return
      */
     public JobStatus getJobStatus(long id, boolean isPersistent) {
-        if(jobConsumerExecutor.isRunning(id, isPersistent)) {
+        if (jobConsumerExecutor.isRunning(id, isPersistent)) {
             return JobStatus.RUNNING;
         }
         JobHolder holder;
-        if(isPersistent) {
+        if (isPersistent) {
             synchronized (persistentJobQueue) {
                 holder = persistentJobQueue.findJobById(id);
             }
@@ -339,14 +354,14 @@ public class JobManager implements NetworkEventProvider.Listener {
                 holder = nonPersistentJobQueue.findJobById(id);
             }
         }
-        if(holder == null) {
+        if (holder == null) {
             return JobStatus.UNKNOWN;
         }
         boolean network = hasNetwork();
-        if(holder.requiresNetwork() && !network) {
+        if (holder.requiresNetwork() && !network) {
             return JobStatus.WAITING_NOT_READY;
         }
-        if(holder.getDelayUntilNs() > System.nanoTime()) {
+        if (holder.getDelayUntilNs() > System.nanoTime()) {
             return JobStatus.WAITING_NOT_READY;
         }
 
@@ -363,9 +378,28 @@ public class JobManager implements NetworkEventProvider.Listener {
                 nonPersistentJobQueue.remove(jobHolder);
             }
         }
-        if(jobHolder.getGroupId() != null) {
+        if (jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
         }
+        // if no more job fire callback
+        if (onAllJobsFinishedListener != null) {
+            onAllJobsFinishedListener.onAllJobsFinished();
+        }
+    }
+
+    public boolean isEmpty() {
+        synchronized (persistentJobQueue) {
+            if (persistentJobQueue.count() > 0) {
+                return false;
+            }
+        }
+        synchronized (nonPersistentJobQueue) {
+            if (nonPersistentJobQueue.count() > 0) {
+                return false;
+            }
+        }
+
+        return runningJobGroups.isEmpty();
     }
 
     public synchronized void clear() {
@@ -382,6 +416,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * if {@link NetworkUtil} implements {@link NetworkEventProvider}, this method is called when network is recovered
+     *
      * @param isConnected network connection state.
      */
     @Override
@@ -410,7 +445,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         public JobHolder getNextJob(int wait, TimeUnit waitDuration) {
             //be optimistic
             JobHolder nextJob = JobManager.this.getNextJob();
-            if(nextJob != null) {
+            if (nextJob != null) {
                 return nextJob;
             }
             long start = System.nanoTime();
@@ -421,16 +456,16 @@ public class JobManager implements NetworkEventProvider.Listener {
             while (nextJob == null && waitUntil > System.nanoTime()) {
                 //keep running inside here to avoid busy loop
                 nextJob = running ? JobManager.this.getNextJob() : null;
-                if(nextJob == null) {
+                if (nextJob == null) {
                     long remaining = waitUntil - System.nanoTime();
-                    if(remaining > 0) {
+                    if (remaining > 0) {
                         //if we can't detect network changes, we won't be notified.
                         //to avoid waiting up to give time, wait in chunks of 500 ms max
                         long maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));
-                        if(maxWait < 1) {
+                        if (maxWait < 1) {
                             continue;//wait(0) will cause infinite wait.
                         }
-                        if(networkUtil instanceof NetworkEventProvider) {
+                        if (networkUtil instanceof NetworkEventProvider) {
                             //to handle delayed jobs, make sure we trigger this first
                             //looks like there is no job available right now, wait for an event.
                             //there is a chance that if it triggers a timer and it gets called before I enter
@@ -470,10 +505,11 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Deprecated, please use {@link #addJob(Job)}.
-     *
+     * <p/>
      * <p>Adds a job with given priority and returns the JobId.</p>
+     *
      * @param priority Higher runs first
-     * @param baseJob The actual job to run
+     * @param baseJob  The actual job to run
      * @return job id
      */
     @Deprecated
@@ -483,11 +519,12 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Deprecated, please use {@link #addJob(Job)}.
-     *
+     * <p/>
      * <p>Adds a job with given priority and returns the JobId.</p>
+     *
      * @param priority Higher runs first
-     * @param delay number of milliseconds that this job should be delayed
-     * @param baseJob The actual job to run
+     * @param delay    number of milliseconds that this job should be delayed
+     * @param baseJob  The actual job to run
      * @return a job id. is useless for now but we'll use this to cancel jobs in the future.
      */
     @Deprecated
@@ -505,17 +542,17 @@ public class JobManager implements NetworkEventProvider.Listener {
                 addOnAddedLock(nonPersistentOnAddedLocks, id);
             }
         }
-        if(JqLog.isDebugEnabled()) {
+        if (JqLog.isDebugEnabled()) {
             JqLog.d("added job id: %d class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
                     , id, baseJob.getClass().getSimpleName(), priority, delay, baseJob.getRunGroupId()
                     , baseJob.isPersistent(), baseJob.requiresNetwork());
         }
-        if(dependencyInjector != null) {
+        if (dependencyInjector != null) {
             //inject members b4 calling onAdded
             dependencyInjector.inject(baseJob);
         }
         jobHolder.getBaseJob().onAdded();
-        if(baseJob.isPersistent()) {
+        if (baseJob.isPersistent()) {
             synchronized (persistentJobQueue) {
                 clearOnAddedLock(persistentOnAddedLocks, id);
             }
@@ -547,6 +584,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * Deprecated, please use {@link #addJobInBackground(Job)}.
      * <p></p>Non-blocking convenience method to add a job in background thread.</p>
+     *
      * @see #addJob(int, long, BaseJob) addJob(priority, delay, job).
      */
     @Deprecated
@@ -563,11 +601,11 @@ public class JobManager implements NetworkEventProvider.Listener {
                 try {
                     final long runDelay = (System.nanoTime() - callTime) / NS_PER_MS;
                     long id = addJob(priority, Math.max(0, delay - runDelay), baseJob);
-                    if(callback != null) {
+                    if (callback != null) {
                         callback.onAdded(id);
                     }
                 } catch (Throwable t) {
-                    JqLog.e(t, "addJobInBackground received an exception. job class: %s", baseJob.getClass().getSimpleName() );
+                    JqLog.e(t, "addJobInBackground received an exception. job class: %s", baseJob.getClass().getSimpleName());
                 }
             }
         });
@@ -593,9 +631,14 @@ public class JobManager implements NetworkEventProvider.Listener {
         public JobQueue createPersistentQueue(Context context, Long sessionId, String id) {
             return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id, jobSerializer));
         }
+
         @Override
         public JobQueue createNonPersistent(Context context, Long sessionId, String id) {
             return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id));
         }
+    }
+
+    public interface OnAllJobsFinishedListener {
+        public void onAllJobsFinished();
     }
 }
