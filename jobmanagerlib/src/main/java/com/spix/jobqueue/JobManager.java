@@ -98,6 +98,10 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         start();
     }
 
+    /**
+     * Will not work properly with methods addJobInBackground
+     * @param onAllJobsFinishedListener
+     */
     public void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
         this.onAllJobsFinishedListener = onAllJobsFinishedListener;
         if (onAllJobsFinishedListener != null) {
