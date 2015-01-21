@@ -19,6 +19,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * a JobManager that supports;
@@ -37,6 +38,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
     private boolean running;
     private OnAllJobsFinishedListener onAllJobsFinishedListener;
 
+    private final AtomicInteger counterForTimedExecutor = new AtomicInteger(0);
     private final Context appContext;
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
@@ -98,10 +100,6 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         start();
     }
 
-    /**
-     * Will not work properly with methods addJobInBackground
-     * @param onAllJobsFinishedListener
-     */
     public void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
         this.onAllJobsFinishedListener = onAllJobsFinishedListener;
         if (onAllJobsFinishedListener != null) {
@@ -587,6 +585,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
     protected void addJobInBackground(final int priority, final long delay, final BaseJob baseJob,
         /*nullable*/final AsyncAddCallback callback) {
         final long callTime = System.nanoTime();
+        counterForTimedExecutor.incrementAndGet();
         timedExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -596,6 +595,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
                     if (callback != null) {
                         callback.onAdded(id);
                     }
+                    counterForTimedExecutor.decrementAndGet();
                 } catch (Throwable t) {
                     JqLog.e(t, "addJobInBackground received an exception. job class: %s", baseJob.getClass().getSimpleName());
                 }
@@ -606,7 +606,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
     //Called when no more jobs are running
     @Override
     public void onAllRunningJobsFinished() {
-        if (count() == 0) {
+        if (count() == 0 && counterForTimedExecutor.get() == 0) {
             if (onAllJobsFinishedListener != null) {
                 onAllJobsFinishedListener.onAllJobsFinished();
             }

@@ -20,7 +20,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(1).build();
+        Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(100).build();
         this.jobManager = new JobManager(getApplicationContext(), configs);
         this.jobManager.start();
         this.jobManager.setOnAllJobsFinishedListener(new JobManager.OnAllJobsFinishedListener() {
@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
                 Log.d("Job", "On all jobs finished callback");
             }
         });
-        jobManager.addJob(new SimpleJob(jobManager));
+        jobManager.addJobInBackground(new SimpleJob(jobManager));
     }
 
     private static class SimpleJob extends Job {
@@ -49,13 +49,13 @@ public class MainActivity extends Activity {
         @Override
         public void onRun() throws Throwable {
             Log.d("Job", "Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get());
-            Thread.sleep(300);
+            Thread.sleep(100);
 
-            if (i.get() > 40) {
+            if (i.get() > 20) {
                 return;
             }
 
-            jobManager.addJob(new SimpleJob(jobManager));
+            jobManager.addJobInBackground(new SimpleJob(jobManager));
 
             i.incrementAndGet();
         }
