@@ -16,6 +16,7 @@ gen/
 local.properties
 gradle.properties
 *.asc
+*.gpg
 *.gradle
 
 # Eclipse project files
