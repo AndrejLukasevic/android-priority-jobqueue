@@ -23,11 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * a JobManager that supports;
- * -> Persistent / Non Persistent Jobs
- * -> Job Priority
- * -> Running Jobs in Parallel
- * -> Grouping jobs so that they won't run at the same time
- * -> Stats like waiting Job Count
+ * - Persistent / Non Persistent Jobs
+ * - Job Priority
+ * - Running Jobs in Parallel
+ * - Grouping jobs so that they won't run at the same time
+ * - Stats like waiting Job Count
  */
 public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJobsFinishedListener {
     public static final long NS_PER_MS = 1000000;
@@ -495,8 +495,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
 
     /**
      * Deprecated, please use {@link #addJob(Job)}.
-     * <p/>
-     * <p>Adds a job with given priority and returns the JobId.</p>
+     * Adds a job with given priority and returns the JobId.
      *
      * @param priority Higher runs first
      * @param baseJob  The actual job to run
@@ -509,8 +508,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
 
     /**
      * Deprecated, please use {@link #addJob(Job)}.
-     * <p/>
-     * <p>Adds a job with given priority and returns the JobId.</p>
+     * Adds a job with given priority and returns the JobId.
      *
      * @param priority Higher runs first
      * @param delay    number of milliseconds that this job should be delayed
@@ -573,7 +571,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
 
     /**
      * Deprecated, please use {@link #addJobInBackground(Job)}.
-     * <p></p>Non-blocking convenience method to add a job in background thread.</p>
+     * Non-blocking convenience method to add a job in background thread.
      *
      * @see #addJob(int, long, BaseJob) addJob(priority, delay, job).
      */
