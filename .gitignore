@@ -14,6 +14,10 @@ gen/
 
 # Local configuration file (sdk path, etc)
 local.properties
+gradle.properties
+*.asc
+*.gpg
+*.gradle
 
 # Eclipse project files
 .classpath
@@ -30,6 +34,8 @@ jobqueue/cobertura.ser
 jobqueue/javadoc
 out
 *.iml
+
 pages
-.gradle
 build
+
+
