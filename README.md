@@ -3,6 +3,13 @@
 Android Priority Job Queue (Job Manager)
 ==========================
 
+This fork have additional features:  
+
+ - JobManager.setOnAllJobsFinishedListener();  Lets you to listen, when all jobs are finished
+
+
+
+
 Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.
 
 It is written primarily with [flexibility][10] & [functionality][11] in mind. This is an ongoing project, which we will continue to add stability and performance improvements.
@@ -129,15 +136,15 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.path:android-priority-jobqueue:1.1.2'`
+Gradle: `compile 'com.github.andrejlukasevic:job-queue-manager:1.0.1'`
 
 Maven:
 
 ``` xml
 <dependency>
-    <groupId>com.path</groupId>
-    <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.1.2</version>
+    <groupId>com.github.andrejlukasevic</groupId>
+    <artifactId>job-queue-manager</artifactId>
+    <version>1.0.1</version>
 </dependency>
 ```
 
