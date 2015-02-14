@@ -1,5 +1,7 @@
 package com.spix.jobqueue;
 
+import android.content.Context;
+
 import com.spix.jobqueue.log.JqLog;
 
 import java.io.IOException;
@@ -19,6 +21,7 @@ abstract public class BaseJob implements Serializable {
     private String groupId;
     private boolean persistent;
     private transient int currentRunCount;
+    private transient Context context;
 
     protected BaseJob(boolean requiresNetwork) {
         this(requiresNetwork, false, null);
@@ -76,6 +79,7 @@ abstract public class BaseJob implements Serializable {
      * The actual method that should to the work
      * It should finish w/o any exception. If it throws any exception, {@code shouldReRunOnThrowable} will be called to
      * decide either to dismiss the job or re-run it.
+     *
      * @throws Throwable
      */
     abstract public void onRun() throws Throwable;
@@ -94,6 +98,7 @@ abstract public class BaseJob implements Serializable {
 
     /**
      * Runs the job and catches any exception
+     *
      * @param currentRunCount
      * @return
      */
@@ -113,7 +118,7 @@ abstract public class BaseJob implements Serializable {
             failed = true;
             JqLog.e(t, "error while executing job");
             reRun = currentRunCount < getRetryLimit();
-            if(reRun) {
+            if (reRun) {
                 try {
                     reRun = shouldReRunOnThrowable(t);
                 } catch (Throwable t2) {
@@ -136,6 +141,7 @@ abstract public class BaseJob implements Serializable {
     /**
      * before each run, JobManager sets this number. Might be useful for the {@link BaseJob#onRun()}
      * method
+     *
      * @return
      */
     protected int getCurrentRunCount() {
@@ -145,6 +151,7 @@ abstract public class BaseJob implements Serializable {
     /**
      * if job is set to require network, it will not be called unless {@link com.spix.jobqueue.network.NetworkUtil}
      * reports that there is a network connection
+     *
      * @return
      */
     public final boolean requiresNetwork() {
@@ -156,6 +163,7 @@ abstract public class BaseJob implements Serializable {
      * never run them in parallel (unless they are being sent to different conversations).
      * By assigning same groupId to jobs, you can ensure that that type of jobs will be run in the order they were given
      * (if their priority is the same).
+     *
      * @return
      */
     public final String getRunGroupId() {
@@ -165,9 +173,21 @@ abstract public class BaseJob implements Serializable {
     /**
      * By default, jobs will be retried {@code DEFAULT_RETRY_LIMIT}  times.
      * If job fails this many times, onCancel will be called w/o calling {@code shouldReRunOnThrowable}
+     *
      * @return
      */
     protected int getRetryLimit() {
         return DEFAULT_RETRY_LIMIT;
+    }
+
+    /**
+     * Gets called automatically
+     */
+    protected final void attachContext(Context context) {
+        this.context = context;
+    }
+
+    public Context getContext() {
+        return context;
     }
 }

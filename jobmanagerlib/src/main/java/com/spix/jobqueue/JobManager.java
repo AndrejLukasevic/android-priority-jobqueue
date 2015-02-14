@@ -313,6 +313,9 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         } else {
             waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
         }
+        if (jobHolder != null && jobHolder.baseJob != null) {
+            jobHolder.baseJob.attachContext(appContext);
+        }
 
         return jobHolder;
     }
