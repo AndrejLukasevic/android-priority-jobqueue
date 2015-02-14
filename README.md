@@ -7,9 +7,6 @@ This fork have additional features:
 
  - JobManager.setOnAllJobsFinishedListener();  Lets you to listen, when all jobs are finished
 
-
-
-
 Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.
 
 It is written primarily with [flexibility][10] & [functionality][11] in mind. This is an ongoing project, which we will continue to add stability and performance improvements.
@@ -145,6 +142,7 @@ Maven:
     <groupId>com.github.andrejlukasevic</groupId>
     <artifactId>job-queue-manager</artifactId>
     <version>1.0.1</version>
+    <type>aar</type>
 </dependency>
 ```
 
@@ -157,18 +155,7 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
-  - 1.1.2 (Feb 18, 2014)
-   - Report exceptions to logger if addInBackground fails. (#31)
-  - 1.1.1 (Feb 8, 2014)
-   - Fixed an important bug (#35) where jobs in the same group may run in parallel if many of them become available at the same time while multiple consumer threads are waiting for a new job. 
-  - 1.1 (Jan 30, 2014)
-   - Job Status query API (#18)
-   - Fixed a stackoverflow bug when network status changes after a long time. (#21) 
-  - 1.0 (Jan 14, 2014):
-   - Added [parameterized][12] constructor for Job for more readable code.
-   - Deprecated `BaseJob` in favor of a more complete `Job` class.
-  - 0.9.9 (Dec 16, 2013):
-   - First public release.
+ - Watch Releases
 
 
 ### [Wiki][9]
@@ -186,20 +173,6 @@ We highly recommend checking how you can configure job manager and individual jo
 - - [Twitter4j](http://twitter4j.org/en)
 - - [EventBus](https://github.com/greenrobot/EventBus)
 - - [Path's fork of greenDAO](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
-
-### Building
-We are in the process of moving build system from ant to gradle. Right now, you can build with gradle but if you want to run tests, you'll need ant.
-
-* Clone the repo
-* `> cd jobqueue`
-* `> ant clean build-jar`
-*
-This will create a jar file under _release_ folder.
-
-#### Running Tests
-* > `cd jobqueue`
-* > `ant clean test`
-
 
 ## License
 
