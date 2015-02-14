@@ -6,6 +6,7 @@ Android Priority Job Queue (Job Manager)
 This fork have additional features:  
 
  - JobManager.setOnAllJobsFinishedListener();  Lets you to listen, when all jobs are finished
+ - Context now available in Job (Note: Context available after onAdded() before onRun()) Usefull when using sticky jobs
 
 Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.
 
