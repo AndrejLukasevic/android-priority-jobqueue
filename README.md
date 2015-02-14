@@ -134,7 +134,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.github.andrejlukasevic:job-queue-manager:1.0.1'`
+Gradle: `compile 'com.github.andrejlukasevic:job-queue-manager:1.1.0'`
 
 Maven:
 
@@ -142,7 +142,7 @@ Maven:
 <dependency>
     <groupId>com.github.andrejlukasevic</groupId>
     <artifactId>job-queue-manager</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <type>aar</type>
 </dependency>
 ```
