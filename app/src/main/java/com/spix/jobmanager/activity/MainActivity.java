@@ -23,51 +23,46 @@ public class MainActivity extends Activity {
         Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(100).build();
         this.jobManager = new JobManager(getApplicationContext(), configs);
         this.jobManager.start();
-        this.jobManager.setOnAllJobsFinishedListener(new JobManager.OnAllJobsFinishedListener() {
-            @Override
-            public void onAllJobsFinished() {
-                Log.d("Job", "On all jobs finished callback");
-            }
-        });
-        jobManager.addJobInBackground(new SimpleJob(jobManager));
+        jobManager.addJob(new SimpleJob());
     }
 
     private static class SimpleJob extends Job {
 
         private static AtomicInteger i = new AtomicInteger(0);
-        private final JobManager jobManager;
 
-        protected SimpleJob(JobManager jobManager) {
-            super(new Params(1).setRequiresNetwork(false));
-            this.jobManager = jobManager;
+        protected SimpleJob() {
+            super(new Params(1).setRequiresNetwork(false).setPersistent(true));
         }
 
         @Override
         public void onAdded() {
+
+            Log.d("Job", "onAdded: ctx" + getContext());
+
         }
 
         @Override
         public void onRun() throws Throwable {
-            Log.d("Job", "Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get());
-            Thread.sleep(100);
 
-            if (i.get() > 20) {
-                return;
-            }
+            Log.d("Job", "onRun: ctx" + getContext());
+            Log.d("Job", "before sleep Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get() + getContext().getString(R.string.abc_action_bar_home_description));
+            Thread.sleep(10000);
+            Log.d("Job", "after sleep Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get());
 
-            jobManager.addJobInBackground(new SimpleJob(jobManager));
-
-            i.incrementAndGet();
         }
 
         @Override
         protected void onCancel() {
+            Log.d("Job", "onCancel: ctx" + getContext());
         }
 
         @Override
         protected boolean shouldReRunOnThrowable(Throwable throwable) {
+            Log.d("Job", "shouldReRunOnThrowable: ctx" + getContext());
+            Log.d("Job", "error: " + throwable.getMessage());
             return false;
         }
+
     }
 
 
