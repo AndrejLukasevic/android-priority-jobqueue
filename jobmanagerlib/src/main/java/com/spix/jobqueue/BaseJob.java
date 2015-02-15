@@ -22,6 +22,7 @@ abstract public class BaseJob implements Serializable {
     private boolean persistent;
     private transient int currentRunCount;
     private transient Context context;
+    private transient JobManager jobManager;
 
     protected BaseJob(boolean requiresNetwork) {
         this(requiresNetwork, false, null);
@@ -183,11 +184,19 @@ abstract public class BaseJob implements Serializable {
     /**
      * Gets called automatically
      */
-    protected final void attachContext(Context context) {
+    protected void attachContext(Context context) {
         this.context = context;
+    }
+
+    protected void attachJobManager(JobManager jobManager) {
+        this.jobManager = jobManager;
     }
 
     public Context getContext() {
         return context;
+    }
+
+    public JobManager getJobManager() {
+        return jobManager;
     }
 }
