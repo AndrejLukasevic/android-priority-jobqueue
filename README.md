@@ -7,6 +7,7 @@ This fork have additional features:
 
  - JobManager.setOnAllJobsFinishedListener();  Lets you to listen, when all jobs are finished
  - Context now available in Job (Note: Context available after onAdded() before onRun()) Usefull when using sticky jobs
+ - JobManager now available in Job (Note: JobManager available after onAdded() before onRun()) Usefull when want to start the job in job
 
 Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.
 
@@ -134,7 +135,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.github.andrejlukasevic:job-queue-manager:1.1.0'`
+Gradle: `compile 'com.github.andrejlukasevic:job-queue-manager:1.2.0'`
 
 Maven:
 
@@ -142,7 +143,7 @@ Maven:
 <dependency>
     <groupId>com.github.andrejlukasevic</groupId>
     <artifactId>job-queue-manager</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <type>aar</type>
 </dependency>
 ```
