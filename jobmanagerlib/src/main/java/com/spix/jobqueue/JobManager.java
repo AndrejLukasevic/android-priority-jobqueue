@@ -315,6 +315,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         }
         if (jobHolder != null && jobHolder.baseJob != null) {
             jobHolder.baseJob.attachContext(appContext);
+            jobHolder.baseJob.attachJobManager(this);
         }
 
         return jobHolder;

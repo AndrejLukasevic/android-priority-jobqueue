@@ -22,7 +22,6 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(100).build();
         this.jobManager = new JobManager(getApplicationContext(), configs);
-        this.jobManager.start();
         jobManager.addJob(new SimpleJob());
     }
 
@@ -31,12 +30,11 @@ public class MainActivity extends Activity {
         private static AtomicInteger i = new AtomicInteger(0);
 
         protected SimpleJob() {
-            super(new Params(1).setRequiresNetwork(false).setPersistent(true));
+            super(new Params(1).setRequiresNetwork(false).setPersistent(true).setDelayMs(25000));
         }
 
         @Override
         public void onAdded() {
-
             Log.d("Job", "onAdded: ctx" + getContext());
 
         }
@@ -48,6 +46,7 @@ public class MainActivity extends Activity {
             Log.d("Job", "before sleep Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get() + getContext().getString(R.string.abc_action_bar_home_description));
             Thread.sleep(10000);
             Log.d("Job", "after sleep Threadid: " + Thread.currentThread().getId() + "  job Nr: " + i.get());
+//            getJobManager().addJob(new SimpleJob());
 
         }
 
