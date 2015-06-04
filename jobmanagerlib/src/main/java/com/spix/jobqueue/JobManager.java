@@ -100,7 +100,7 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         start();
     }
 
-    public void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
+    public synchronized void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {
         this.onAllJobsFinishedListener = onAllJobsFinishedListener;
         if (onAllJobsFinishedListener != null) {
             this.jobConsumerExecutor.setOnAllRunningJobsFinishedListener(this);
@@ -609,8 +609,10 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
     @Override
     public void onAllRunningJobsFinished() {
         if (count() == 0 && counterForTimedExecutor.get() == 0) {
-            if (onAllJobsFinishedListener != null) {
-                onAllJobsFinishedListener.onAllJobsFinished();
+            synchronized (this) {
+                if (onAllJobsFinishedListener != null) {
+                    onAllJobsFinishedListener.onAllJobsFinished();
+                }
             }
         }
     }
