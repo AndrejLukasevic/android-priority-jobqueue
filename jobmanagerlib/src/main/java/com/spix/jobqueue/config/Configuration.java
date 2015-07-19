@@ -2,6 +2,7 @@ package com.spix.jobqueue.config;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+
 import com.spix.jobqueue.JobManager;
 import com.spix.jobqueue.JobQueue;
 import com.spix.jobqueue.QueueFactory;
@@ -23,6 +24,7 @@ public class Configuration {
     public static final int MIN_CONSUMER_COUNT = 0;
 
     private String id = DEFAULT_ID;
+    private boolean startWhenInitialized = true;
     private int maxConsumerCount = MAX_CONSUMER_COUNT;
     private int minConsumerCount = MIN_CONSUMER_COUNT;
     private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
@@ -32,12 +34,16 @@ public class Configuration {
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
 
-    private Configuration(){
+    private Configuration() {
         //use builder instead
     }
 
     public String getId() {
         return id;
+    }
+
+    public boolean isStartWhenInitialized() {
+        return startWhenInitialized;
     }
 
     public QueueFactory getQueueFactory() {
@@ -75,6 +81,7 @@ public class Configuration {
     public static final class Builder {
         private Configuration configuration;
         private Context appContext;
+
         public Builder(Context context) {
             this.configuration = new Configuration();
             appContext = context.getApplicationContext();
@@ -84,6 +91,7 @@ public class Configuration {
          * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
          * create multiple instances of it.
          * default id is {@value #DEFAULT_ID}
+         *
          * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
          */
         public Builder id(String id) {
@@ -91,8 +99,14 @@ public class Configuration {
             return this;
         }
 
+        public Builder startWhenInitialized(boolean start) {
+            configuration.startWhenInitialized = start;
+            return this;
+        }
+
         /**
          * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration. it defaults to {@value #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         *
          * @param keepAlive in seconds
          */
         public Builder consumerKeepAlive(int keepAlive) {
@@ -104,11 +118,12 @@ public class Configuration {
          * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
          * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
          * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
-         *  JobQueueTestBase to ensure it will work fine.
+         * JobQueueTestBase to ensure it will work fine.
+         *
          * @param queueFactory your custom queue factory.
          */
         public Builder queueFactory(QueueFactory queueFactory) {
-            if(configuration.queueFactory != null) {
+            if (configuration.queueFactory != null) {
                 throw new RuntimeException("already set a queue factory. This might happen if you've provided a custom " +
                         "job serializer");
             }
@@ -139,6 +154,7 @@ public class Configuration {
          * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
          * before {BaseJob#onAdded} method is called.
          * if job is persistent, it will also be called before run method.
+         *
          * @param injector your dependency injector interface, if using one
          * @return
          */
@@ -149,6 +165,7 @@ public class Configuration {
 
         /**
          * # of max consumers to run concurrently. defaults to {@value #MAX_CONSUMER_COUNT}
+         *
          * @param count
          */
         public Builder maxConsumerCount(int count) {
@@ -158,6 +175,7 @@ public class Configuration {
 
         /**
          * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to {@value #MIN_CONSUMER_COUNT}
+         *
          * @param count
          */
         public Builder minConsumerCount(int count) {
@@ -168,6 +186,7 @@ public class Configuration {
         /**
          * you can provide a custom logger to get logs from JobManager.
          * by default, logs will go no-where.
+         *
          * @param logger
          */
         public Builder customLogger(CustomLogger logger) {
@@ -180,6 +199,7 @@ public class Configuration {
          * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
          * (10/2) =5
          * defaults to {@value #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
+         *
          * @param loadFactor
          */
         public Builder loadFactor(int loadFactor) {
@@ -188,10 +208,10 @@ public class Configuration {
         }
 
         public Configuration build() {
-            if(configuration.queueFactory == null) {
+            if (configuration.queueFactory == null) {
                 configuration.queueFactory = new JobManager.DefaultQueueFactory();
             }
-            if(configuration.networkUtil == null) {
+            if (configuration.networkUtil == null) {
                 configuration.networkUtil = new NetworkUtilImpl(appContext);
             }
             return configuration;
