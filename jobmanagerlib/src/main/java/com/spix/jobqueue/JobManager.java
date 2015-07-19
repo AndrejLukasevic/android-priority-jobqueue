@@ -81,7 +81,8 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
             JqLog.setCustomLogger(config.getCustomLogger());
         }
         appContext = context.getApplicationContext();
-        running = true;
+        running = config.isStartWhenInitialized();
+
         runningJobGroups = new CopyOnWriteGroupSet();
         sessionId = System.nanoTime();
         this.persistentJobQueue = config.getQueueFactory().createPersistentQueue(context, sessionId, config.getId());
@@ -97,7 +98,13 @@ public class JobManager implements NetworkEventProvider.Listener, OnAllRunningJo
         //is important to initialize consumers last so that they can start running
         jobConsumerExecutor = new JobConsumerExecutor(config, consumerContract);
         timedExecutor = Executors.newSingleThreadScheduledExecutor();
-        start();
+
+        if (config.isStartWhenInitialized()) {
+            start();
+        } else {
+            stop();
+        }
+
     }
 
     public synchronized void setOnAllJobsFinishedListener(OnAllJobsFinishedListener onAllJobsFinishedListener) {

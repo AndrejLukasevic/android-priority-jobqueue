@@ -20,9 +20,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(100).build();
+        Configuration configs = new Configuration.Builder(getApplicationContext()).id("test").loadFactor(100).startWhenInitialized(false).build();
         this.jobManager = new JobManager(getApplicationContext(), configs);
         jobManager.addJob(new SimpleJob());
+        jobManager.start();
     }
 
     private static class SimpleJob extends Job {
@@ -30,7 +31,7 @@ public class MainActivity extends Activity {
         private static AtomicInteger i = new AtomicInteger(0);
 
         protected SimpleJob() {
-            super(new Params(1).setRequiresNetwork(false).setPersistent(true).setDelayMs(25000));
+            super(new Params(1).setRequiresNetwork(false).setPersistent(true));
         }
 
         @Override
